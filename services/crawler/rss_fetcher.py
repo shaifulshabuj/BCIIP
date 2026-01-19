@@ -27,17 +27,25 @@ minio_client = Minio(
     secure=MINIO_SECURE
 )
 
-if not minio_client.bucket_exists(MINIO_BUCKET):
-    minio_client.make_bucket(MINIO_BUCKET)
-
 # DB Setup
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Ensure tables exist (Simple MVP approach)
-Base.metadata.create_all(bind=engine)
+def init_resources():
+    """
+    Lazy initialization for network resources to avoid startup crashes.
+    """
+    try:
+        if not minio_client.bucket_exists(MINIO_BUCKET):
+            minio_client.make_bucket(MINIO_BUCKET)
+        # Ensure tables exist (Simple approach, migrations better in production)
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Resource initialization failed (MinIO/DB): {e}")
+        raise
 
 def fetch_and_process_feed(source_name, rss_url):
+    init_resources()
     print(f"Fetching {source_name} from {rss_url}...")
     feed = feedparser.parse(rss_url)
     

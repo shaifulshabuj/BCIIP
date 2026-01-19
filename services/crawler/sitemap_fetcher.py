@@ -29,7 +29,20 @@ minio_client = Minio(
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def init_resources():
+    """
+    Lazy initialization for network resources.
+    """
+    try:
+        if not minio_client.bucket_exists(MINIO_BUCKET):
+            minio_client.make_bucket(MINIO_BUCKET)
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Resource initialization failed: {e}")
+        raise
+
 def fetch_sitemap(url, source_name):
+    init_resources()
     print(f"Fetching sitemap for {url}...")
     tree = sitemap_tree_for_homepage(url)
     

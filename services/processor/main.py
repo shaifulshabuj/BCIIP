@@ -37,7 +37,19 @@ minio_client = Minio(
     secure=MINIO_SECURE
 )
 
+def init_resources():
+    """
+    Lazy initialization for network resources.
+    """
+    try:
+        if not minio_client.bucket_exists(MINIO_BUCKET):
+            minio_client.make_bucket(MINIO_BUCKET)
+    except Exception as e:
+        print(f"Resource initialization failed (MinIO): {e}")
+        raise
+
 def run_process():
+    init_resources()
     print("Starting Processor Service...")
     session = SessionLocal()
     
