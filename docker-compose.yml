@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    command: /app/.venv/bin/uvicorn services.api.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/bciip
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  crawler:
+    build: .
+    # Just keep it alive or run command?
+    # Implementation Plan said "Run crawler manually" or "Add service".
+    # I'll make it sleep so I can exec into it OR run the command. 
+    # But wait, running it as a service that exits immediately causes restarts.
+    # I'll set entrypoint to tail -f /dev/null for dev, or just run main.py and let it exit (restart: no).
+    # "Restart-safe" is a constraint.
+    command: python -m services.crawler.main
+    # For Phase 1, we might want to trigger it manually or have it run intervals.
+    # Let's make it run once and exit. Docker compose up will run it.
+    profiles: [ "crawl" ] # Only run when explicitly asked? Or just let it run.
+    # Plan: "Run crawler manually: docker-compose run crawler ..."
+    # So I just define the service but maybe clean up profile?
+    # I'll leave profile off so it runs on up, verifying it works.
+    restart: "no"
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/bciip
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+    depends_on:
+      - postgres
+      - minio
+
+  processor:
+    build: .
+    command: python -m services.processor.main
+    profiles: [ "process" ]
+    restart: "no"
+    volumes:
+      - .:/app
+      - /app/.venv
+      - ./models:/app/models
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/bciip
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+    depends_on:
+      - postgres
+      - minio
+
+  worker:
+    build: .
+    command: celery -A services.celery_app worker --loglevel=info
+    restart: always
+    volumes:
+      - .:/app
+      - /app/.venv
+      - ./models:/app/models
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/bciip
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+    depends_on:
+      - redis
+      - postgres
+
+  beat:
+    build: .
+    command: celery -A services.celery_app beat --loglevel=info
+    restart: always
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  postgres:
+    image: pgvector/pgvector:pg15
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=bciip
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  minio:
+    image: minio/minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

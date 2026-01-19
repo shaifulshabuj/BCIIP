@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+.env
+.venv/
+
+# Docker
+*.log
+
+# ML / NLP models (IMPORTANT)
+models/*.bin
+*.bin
+
+# Data
+data/
