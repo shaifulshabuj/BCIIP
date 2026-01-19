@@ -50,9 +50,9 @@ def backfill_task(url: str, source: str):
 
 # Periodic Schedule
 app.conf.beat_schedule = {
-    'crawl-every-30-mins': {
+    'crawl-every-10-mins': {
         'task': 'crawl_task',
-        'schedule': crontab(minute='*/30'),
+        'schedule': crontab(minute='*/10'),
     },
     'process-every-5-mins': {
         'task': 'process_task',

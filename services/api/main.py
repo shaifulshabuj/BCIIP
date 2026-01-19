@@ -5,7 +5,7 @@ from services.api.schemas import ArticleResponse, SearchRequest
 from sqlalchemy import create_engine, or_, text
 from sqlalchemy.orm import sessionmaker
 import os
-from typing import List
+from typing import List, Optional
 from libs.embeddings.embedder import generate_embedding
 
 # Database Setup
@@ -58,11 +58,79 @@ def get_status(db: Session = Depends(get_db)):
         "timestamp": datetime.datetime.now().isoformat()
     }
 
+@app.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    """Detailed statistics about articles and processing"""
+    from sqlalchemy import func, case
+    
+    total_articles = db.query(Article).count()
+    
+    # Count by processing stage
+    with_cleaned_text = db.query(Article).filter(Article.cleaned_text.isnot(None)).count()
+    with_language = db.query(Article).filter(Article.language.isnot(None)).count()
+    with_category = db.query(Article).filter(Article.primary_category.isnot(None)).count()
+    with_summary = db.query(Article).filter(Article.summary_text.isnot(None)).count()
+    with_embedding = db.query(Article).filter(Article.embedding.isnot(None)).count()
+    
+    # Count by source
+    sources = db.query(
+        Article.source,
+        func.count(Article.id).label('count')
+    ).group_by(Article.source).all()
+    
+    source_stats = {s[0]: s[1] for s in sources}
+    
+    # Count by category
+    categories = db.query(
+        Article.primary_category,
+        func.count(Article.id).label('count')
+    ).filter(Article.primary_category.isnot(None)).group_by(Article.primary_category).all()
+    
+    category_stats = {c[0]: c[1] for c in categories}
+    
+    return {
+        "total_articles": total_articles,
+        "processing_stages": {
+            "acquired": total_articles,
+            "cleaned": with_cleaned_text,
+            "language_detected": with_language,
+            "categorized": with_category,
+            "summarized": with_summary,
+            "embedded": with_embedding,
+        },
+        "by_source": source_stats,
+        "by_category": category_stats,
+    }
+
 @app.get("/articles", response_model=List[ArticleResponse])
-def get_articles(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    articles = db.query(Article).order_by(Article.published_at.desc()).offset(skip).limit(limit).all()
-    # Simple list view, usually we'd load entities via relationship or separate query.
-    # For now, to match schema, we return them. If entities missing, Pydantic defaults to empty list.
+def get_articles(
+    skip: int = 0, 
+    limit: int = 20, 
+    pub_date_from: Optional[str] = None,
+    pub_date_to: Optional[str] = None,
+    acq_date_from: Optional[str] = None,
+    acq_date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Article)
+    
+    # Filter by published date
+    if pub_date_from:
+        from datetime import datetime
+        query = query.filter(Article.published_at >= datetime.fromisoformat(pub_date_from))
+    if pub_date_to:
+        from datetime import datetime
+        query = query.filter(Article.published_at <= datetime.fromisoformat(pub_date_to))
+    
+    # Filter by acquisition date (created_at)
+    if acq_date_from:
+        from datetime import datetime
+        query = query.filter(Article.created_at >= datetime.fromisoformat(acq_date_from))
+    if acq_date_to:
+        from datetime import datetime
+        query = query.filter(Article.created_at <= datetime.fromisoformat(acq_date_to))
+    
+    articles = query.order_by(Article.published_at.desc()).offset(skip).limit(limit).all()
     return articles
 
 @app.get("/articles/{article_id}", response_model=ArticleResponse)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import './App.css' // Assuming we extract styles or keep using index.css
+import './App.css'
 
 function App() {
     const [articles, setArticles] = useState([])
@@ -8,25 +8,44 @@ function App() {
     const [searchType, setSearchType] = useState('text')
     const [selectedTopic, setSelectedTopic] = useState(null)
     const [loading, setLoading] = useState(false)
+    const [page, setPage] = useState(0)
+    const [hasMore, setHasMore] = useState(true)
 
-    // Realtime Status
+    // Date filters
+    const [pubDateFrom, setPubDateFrom] = useState('')
+    const [pubDateTo, setPubDateTo] = useState('')
+    const [acqDateFrom, setAcqDateFrom] = useState('')
+    const [acqDateTo, setAcqDateTo] = useState('')
+
     const [systemStatus, setSystemStatus] = useState("idle")
     const [articleCount, setArticleCount] = useState(0)
     const [newContentAvailable, setNewContentAvailable] = useState(false)
+    const [stats, setStats] = useState(null)
     const lastKnownCount = useRef(0)
 
-    // Use relative URL so Vite proxy handles it
     const API_BASE = ''
 
     useEffect(() => {
-        fetchArticles()
-        // Initial status check
+        fetchArticles(true)
         checkStatus()
-
-        // Poll for status every 10 seconds
+        fetchStats()
         const interval = setInterval(checkStatus, 10000)
         return () => clearInterval(interval)
-    }, [selectedTopic])
+    }, [selectedTopic, pubDateFrom, pubDateTo, acqDateFrom, acqDateTo])
+
+    // Infinite scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.innerHeight + document.documentElement.scrollTop
+                >= document.documentElement.offsetHeight - 200) {
+                if (!loading && hasMore) {
+                    fetchArticles(false)
+                }
+            }
+        }
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [loading, hasMore, page])
 
     const checkStatus = async () => {
         try {
@@ -34,7 +53,6 @@ function App() {
             setSystemStatus(res.data.status)
             const currentCount = res.data.article_count
 
-            // If this is the first load, rely on the count; otherwise check for increase
             if (lastKnownCount.current > 0 && currentCount > lastKnownCount.current) {
                 setNewContentAvailable(true)
             }
@@ -49,21 +67,51 @@ function App() {
         }
     }
 
-    const fetchArticles = async () => {
+    const fetchStats = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/stats`)
+            setStats(res.data)
+        } catch (e) {
+            console.error("Stats fetch failed", e)
+        }
+    }
+
+    const fetchArticles = async (reset = false) => {
+        if (loading) return
+
         setLoading(true)
         try {
-            let url = `${API_BASE}/articles?limit=50`
+            const currentPage = reset ? 0 : page
+            const skip = currentPage * 20
+
+            let url = `${API_BASE}/articles?limit=20&skip=${skip}`
+            const params = new URLSearchParams()
+
+            if (pubDateFrom) params.append('pub_date_from', pubDateFrom)
+            if (pubDateTo) params.append('pub_date_to', pubDateTo)
+            if (acqDateFrom) params.append('acq_date_from', acqDateFrom)
+            if (acqDateTo) params.append('acq_date_to', acqDateTo)
+
             if (selectedTopic) {
-                url = `${API_BASE}/topics/${selectedTopic}`
+                url = `${API_BASE}/topics/${selectedTopic}?skip=${skip}&limit=20`
+            } else if (params.toString()) {
+                url += `&${params.toString()}`
             }
+
             const res = await axios.get(url)
-            setArticles(res.data)
+
+            if (reset) {
+                setArticles(res.data)
+                setPage(1)
+            } else {
+                setArticles(prev => [...prev, ...res.data])
+                setPage(currentPage + 1)
+            }
+
+            setHasMore(res.data.length === 20)
             setNewContentAvailable(false)
-            // Update ref to current count after fetch
-            if (articles.length > 0) {
-                // This logic is imperfect for "count" vs "fetched list" but good enough for MVP signal
-                // Ideally we use the count from status API as the truth.
-                // Let's rely on checkStatus to update the ref once we dismiss the notice.
+
+            if (res.data.length > 0) {
                 const statusRes = await axios.get(`${API_BASE}/status`)
                 lastKnownCount.current = statusRes.data.article_count
             }
@@ -75,7 +123,7 @@ function App() {
 
     const handleSearch = async (e) => {
         e.preventDefault()
-        if (!query) return fetchArticles()
+        if (!query) return fetchArticles(true)
 
         setLoading(true)
         try {
@@ -84,10 +132,19 @@ function App() {
             })
             setArticles(res.data)
             setSelectedTopic(null)
+            setHasMore(false)
         } catch (e) {
             console.error(e)
         }
         setLoading(false)
+    }
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'N/A'
+        const date = new Date(dateStr)
+        const dateOnly = date.toISOString().split('T')[0].replace(/-/g, '/')
+        const time = date.toTimeString().split(' ')[0]
+        return `${dateOnly} ${time}`
     }
 
     const topics = ['Politics', 'Sports', 'Business', 'Technology', 'Education', 'Crime']
@@ -99,10 +156,10 @@ function App() {
                     <h1>BCIIP Intelligence</h1>
                     <div style={{ textAlign: 'right' }}>
                         <span className={`status-badge ${systemStatus}`}>
-                            {systemStatus === 'running' ? '🟢 Crawling' : '⚪ Ideal'}
+                            {systemStatus === 'running' ? '🟢 Crawling' : '⚪ Idle'}
                         </span>
                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                            {articleCount} Articles Processed
+                            {articleCount} Articles Total
                         </div>
                     </div>
                 </div>
@@ -110,8 +167,60 @@ function App() {
             </header>
 
             {newContentAvailable && (
-                <div className="notification-banner" onClick={fetchArticles}>
+                <div className="notification-banner" onClick={() => fetchArticles(true)}>
                     📢 New articles available! Click to refresh.
+                </div>
+            )}
+
+            {stats && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                    color: 'white',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    border: '1px solid #475569'
+                }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+                        <div>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Pipeline</h4>
+                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>📥 Acquired</span> <span>{stats.processing_stages?.acquired || 0}</span></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🧹 Cleaned</span> <span>{stats.processing_stages?.cleaned || 0}</span></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🏷️ Categorized</span> <span>{stats.processing_stages?.categorized || 0}</span></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>📝 Summarized</span> <span>{stats.processing_stages?.summarized || 0}</span></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🔮 Embedded</span> <span>{stats.processing_stages?.embedded || 0}</span></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Top Sources</h4>
+                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                {stats.by_source ?
+                                    Object.entries(stats.by_source).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([source, count]) => (
+                                        <div key={source} style={{ display: 'flex', justifyContent: 'space-between', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <span style={{ marginRight: '10px' }}>{source}</span>
+                                            <span>{count}</span>
+                                        </div>
+                                    )) : <div>No data</div>
+                                }
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Categories</h4>
+                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
+                                {stats.by_category ?
+                                    Object.entries(stats.by_category).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([cat, count]) => (
+                                        <div key={cat} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ textTransform: 'capitalize' }}>{cat}</span>
+                                            <span>{count}</span>
+                                        </div>
+                                    )) : <div>No data</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -128,6 +237,26 @@ function App() {
                 </select>
                 <button type="submit">Search</button>
             </form>
+
+            <div className="date-filters" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div>
+                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📅 Pub From:</label>
+                    <input type="date" value={pubDateFrom} onChange={(e) => setPubDateFrom(e.target.value)} />
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📅 Pub To:</label>
+                    <input type="date" value={pubDateTo} onChange={(e) => setPubDateTo(e.target.value)} />
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📥 Acq From:</label>
+                    <input type="date" value={acqDateFrom} onChange={(e) => setAcqDateFrom(e.target.value)} />
+                </div>
+                <div>
+                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📥 Acq To:</label>
+                    <input type="date" value={acqDateTo} onChange={(e) => setAcqDateTo(e.target.value)} />
+                </div>
+                <button onClick={() => { setPubDateFrom(''); setPubDateTo(''); setAcqDateFrom(''); setAcqDateTo('') }} style={{ padding: '5px 15px', cursor: 'pointer' }}>Clear</button>
+            </div>
 
             <div className="filters">
                 <span
@@ -147,8 +276,6 @@ function App() {
                 ))}
             </div>
 
-            {loading && <p>Loading...</p>}
-
             <div className="article-list">
                 {articles.map(article => (
                     <div key={article.id} className="article-card">
@@ -159,8 +286,8 @@ function App() {
                         </h2>
                         <div className="meta">
                             <div>
-                                <span title="When the article was published">📅 Pub: {new Date(article.published_at).toLocaleString()}</span>
-                                <span style={{ marginLeft: '10px' }} title="When we acquired this data">📥 Acq: {new Date(article.created_at).toLocaleString()}</span>
+                                <span title="When the article was published">📅 Pub: {formatDate(article.published_at)}</span>
+                                <span style={{ marginLeft: '10px' }} title="When we acquired this data">📥 Acq: {formatDate(article.created_at)}</span>
                             </div>
                             <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
                                 <span>{article.source}</span>
@@ -179,6 +306,10 @@ function App() {
                     </div>
                 ))}
             </div>
+
+            {loading && <p style={{ textAlign: 'center', padding: '20px' }}>Loading more articles...</p>}
+            {!loading && !hasMore && articles.length > 0 && <p style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No more articles to load</p>}
+            {!loading && articles.length === 0 && <p style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No articles found</p>}
         </div>
     )
 }
