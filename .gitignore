@@ -13,3 +13,9 @@ models/*.bin
 # Data
 data/
 celerybeat-schedule
+
+# Frontend
+services/frontend/node_modules/
+services/frontend/dist/
+services/frontend/.vite/
+services/frontend/node_modules
