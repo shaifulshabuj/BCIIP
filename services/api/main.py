@@ -53,7 +53,11 @@ def startup_db_check():
             print(f"Checking database connection... (Retries left: {retry_count})")
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            print("Database connection established.")
+                # Ensure pgvector extension is enabled
+                print("Ensuring pgvector extension is active...")
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+                conn.commit()
+            print("Database connection established and extension ensured.")
             Base.metadata.create_all(bind=engine)
             return
         except Exception as e:
