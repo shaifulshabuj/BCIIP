@@ -17,6 +17,7 @@ class ArticleResponse(BaseModel):
     title: str
     url: str
     published_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
     language: Optional[str] = None
     primary_category: Optional[str] = None
     topic_confidence: Optional[str] = None

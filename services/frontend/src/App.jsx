@@ -158,8 +158,14 @@ function App() {
                             </a>
                         </h2>
                         <div className="meta">
-                            <span>{article.source}</span> • <span>{new Date(article.published_at).toLocaleDateString()}</span>
-                            {article.primary_category && ` • ${article.primary_category}`}
+                            <div>
+                                <span title="When the article was published">📅 Pub: {new Date(article.published_at).toLocaleString()}</span>
+                                <span style={{ marginLeft: '10px' }} title="When we acquired this data">📥 Acq: {new Date(article.created_at).toLocaleString()}</span>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                                <span>{article.source}</span>
+                                {article.primary_category && ` • ${article.primary_category}`}
+                            </div>
                         </div>
                         {article.summary_text || (article.cleaned_text ? article.cleaned_text.substring(0, 200) + '...' : 'No content available.')}
 

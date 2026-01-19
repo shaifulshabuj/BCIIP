@@ -41,6 +41,13 @@ def process_task():
     run_process()
     return "Process Completed"
 
+@app.task(name='backfill_task')
+def backfill_task(url: str, source: str):
+    print(f"Running Backfill Task for {source}...")
+    from services.crawler.sitemap_fetcher import fetch_sitemap
+    fetch_sitemap(url, source)
+    return f"Backfill for {source} Completed"
+
 # Periodic Schedule
 app.conf.beat_schedule = {
     'crawl-every-30-mins': {
