@@ -37,7 +37,9 @@ export default defineConfig({
             '/articles': 'http://api:8000',
             '/search': 'http://api:8000',
             '/topics': 'http://api:8000',
-            '/entities': 'http://api:8000'
+            '/entities': 'http://api:8000',
+            '/stats': 'http://api:8000',
+            '/status': 'http://api:8000'
         }
     }
 })
