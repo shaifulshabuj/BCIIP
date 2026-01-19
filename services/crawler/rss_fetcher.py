@@ -7,7 +7,7 @@ from datetime import datetime
 from minio import Minio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from libs.utils.config import get_redis_url, get_minio_config
+from libs.utils.config import get_database_url, get_redis_url, get_minio_config
 from services.api.models import Article, Base
 
 # Configuration
