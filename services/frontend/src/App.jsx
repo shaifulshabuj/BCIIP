@@ -8,9 +8,7 @@ import {
     Layers,
     ShieldCheck,
     RefreshCcw,
-    ArrowRight,
-    Filter,
-    X
+    ArrowRight, Filter, X, FileText, TextQuote, Tags
 } from 'lucide-react'
 import './App.css'
 
@@ -28,6 +26,7 @@ function App() {
     const [pubDateTo, setPubDateTo] = useState('')
     const [acqDateFrom, setAcqDateFrom] = useState('')
     const [acqDateTo, setAcqDateTo] = useState('')
+    const [selectedArticle, setSelectedArticle] = useState(null)
 
     // Realtime Status
     const [systemStatus, setSystemStatus] = useState("idle")
@@ -287,8 +286,13 @@ function App() {
             </section >
 
             <section className="article-list">
-                {articles.map(article => (
-                    <div key={article.id} className="article-card">
+                {articles.map((article, idx) => (
+                    <div
+                        key={idx}
+                        className="article-card"
+                        onClick={() => setSelectedArticle(article)}
+                        style={{ cursor: 'pointer' }}
+                    >
                         <h2>
                             <a href={article.url} target="_blank" rel="noopener noreferrer">
                                 {article.title}
@@ -322,7 +326,85 @@ function App() {
             {loading && <div className="loading-indicator">Deep searching database...</div>}
             {!loading && !hasMore && articles.length > 0 && <div className="loading-indicator">End of intelligence stream</div>}
             {!loading && articles.length === 0 && <div className="loading-indicator">No intelligence signals found matching the current parameters</div>}
-        </div >
+            {/* Modal */}
+            {
+                selectedArticle && (
+                    <div className="modal-overlay" onClick={() => setSelectedArticle(null)}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <div>
+                                    <span className="source-badge">{selectedArticle.source}</span>
+                                    <h2>{selectedArticle.title}</h2>
+                                </div>
+                                <button className="close-modal" onClick={() => setSelectedArticle(null)}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="modal-body">
+                                <div className="modal-meta">
+                                    <div className="meta-item">
+                                        <Calendar size={14} />
+                                        <span>Pub: {new Date(selectedArticle.published_at).toLocaleString()}</span>
+                                    </div>
+                                    <div className="meta-item">
+                                        <Database size={14} />
+                                        <span>Acq: {new Date(selectedArticle.created_at).toLocaleString()}</span>
+                                    </div>
+                                    <div className="meta-item">
+                                        <Layers size={14} />
+                                        <span>{selectedArticle.category || 'Uncategorized'}</span>
+                                    </div>
+                                </div>
+
+                                {selectedArticle.summary && (
+                                    <div className="modal-section">
+                                        <h3><TextQuote size={18} /> Summary</h3>
+                                        <div className="summary-text" style={{ fontSize: '1.1rem', color: 'var(--text-dim)', lineHeight: '1.6', fontStyle: 'italic' }}>
+                                            {selectedArticle.summary}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedArticle.full_text && (
+                                    <div className="modal-section">
+                                        <h3><FileText size={18} /> Full Article</h3>
+                                        <div className="full-text">
+                                            {selectedArticle.full_text}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedArticle.entities && selectedArticle.entities.length > 0 && (
+                                    <div className="modal-section">
+                                        <h3><Tags size={18} /> Extracted Entities</h3>
+                                        <div className="topic-filters" style={{ marginTop: '12px' }}>
+                                            {selectedArticle.entities.map((ent, i) => (
+                                                <span key={i} className="topic-tag">
+                                                    {ent.name} <small style={{ opacity: 0.6, marginLeft: 4 }}>({ent.type})</small>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div style={{ marginTop: '40px', textAlign: 'center' }}>
+                                    <a
+                                        href={selectedArticle.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="search-button"
+                                        style={{ display: 'inline-flex', textDecoration: 'none' }}
+                                    >
+                                        View Original Source <ArrowRight size={18} style={{ marginLeft: 8 }} />
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div>
     )
 }
 

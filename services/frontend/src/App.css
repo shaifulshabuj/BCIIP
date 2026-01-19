@@ -362,6 +362,123 @@ header p {
   }
 }
 
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: modalEnter 0.3s ease-out;
+}
+
+.modal-header {
+  padding: 32px 32px 16px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.modal-header h2 {
+  font-size: 1.75rem;
+  line-height: 1.3;
+}
+
+.modal-body {
+  padding: 32px;
+}
+
+.close-modal {
+  background: var(--bg-elevated);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.close-modal:hover {
+  background: var(--danger);
+  transform: rotate(90deg);
+}
+
+.modal-meta {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 0.875rem;
+}
+
+.modal-section {
+  margin-bottom: 40px;
+}
+
+.modal-section h3 {
+  font-size: 1rem;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.full-text {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+}
+
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   header h1 {
@@ -370,5 +487,18 @@ header p {
 
   .search-container {
     flex-direction: column;
+  }
+
+  .modal-content {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modal-header {
+    padding: 20px;
+  }
+
+  .modal-body {
+    padding: 20px;
   }
 }
