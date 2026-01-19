@@ -11,12 +11,19 @@ from libs.embeddings.embedder import generate_embedding
 
 # Database Setup
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5432/bciip")
-engine = create_engine(DATABASE_URL)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(
+    DATABASE_URL, 
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    connect_args={"sslmode": "prefer"} if "localhost" not in DATABASE_URL and "postgres:5432" not in DATABASE_URL else {}
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create tables (if not handled by migration scripts, good for safety)
-# For pgvector type, we might need to assume extension is active.
-Base.metadata.create_all(bind=engine)
+# Tables are created in the startup event below for better error handling
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="BCIIP API")
 
@@ -37,6 +44,24 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@app.on_event("startup")
+def startup_db_check():
+    import time
+    retry_count = 5
+    while retry_count > 0:
+        try:
+            print(f"Checking database connection... (Retries left: {retry_count})")
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("Database connection established.")
+            Base.metadata.create_all(bind=engine)
+            return
+        except Exception as e:
+            print(f"Database connection failed: {e}")
+            retry_count -= 1
+            time.sleep(2)
+    print("Could not connect to database after multiple retries.")
 
 @app.get("/")
 def read_root():
