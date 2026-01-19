@@ -161,9 +161,7 @@ function App() {
                             <span>{article.source}</span> • <span>{new Date(article.published_at).toLocaleDateString()}</span>
                             {article.primary_category && ` • ${article.primary_category}`}
                         </div>
-                        <p className="summary">
-                            {article.summary_text || article.cleaned_text?.substring(0, 200) + '...'}
-                        </p>
+                        {article.summary_text || (article.cleaned_text ? article.cleaned_text.substring(0, 200) + '...' : 'No content available.')}
 
                         {article.entities && article.entities.length > 0 && (
                             <div className="entities">
