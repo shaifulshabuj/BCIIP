@@ -23,6 +23,7 @@ class ArticleResponse(BaseModel):
     topic_confidence: Optional[str] = None
     summary_text: Optional[str] = None
     summary_bullets: Optional[str] = None
+    cleaned_text: Optional[str] = None
     entities: List[EntitySchema] = []
 
     class Config:

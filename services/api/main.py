@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from services.api.models import Base, Article, Entity, ArticleEntity
 from services.api.schemas import ArticleResponse, SearchRequest
 from sqlalchemy import create_engine, or_, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload
 import os
 from typing import List, Optional
 from libs.embeddings.embedder import generate_embedding
@@ -112,7 +112,7 @@ def get_articles(
     acq_date_to: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Article)
+    query = db.query(Article).options(joinedload(Article.entities))
     
     # Filter by published date
     if pub_date_from:
@@ -135,32 +135,21 @@ def get_articles(
 
 @app.get("/articles/{article_id}", response_model=ArticleResponse)
 def get_article(article_id: str, db: Session = Depends(get_db)):
-    article = db.query(Article).filter(Article.id == article_id).first()
+    article = db.query(Article).options(joinedload(Article.entities)).filter(Article.id == article_id).first()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-        
-    # Manual fetch of entities since we didn't add relationship to model properly for ORM
-    links = db.query(ArticleEntity).filter(ArticleEntity.article_id == article.id).all()
-    entities = []
-    for link in links:
-        ent = db.query(Entity).get(link.entity_id)
-        if ent:
-            entities.append(ent)
-            
-    # Hack to attach entities for Pydantic serialization
-    article.entities = entities 
     return article
 
 @app.get("/topics/{topic_name}", response_model=List[ArticleResponse])
 def get_articles_by_topic(topic_name: str, skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    articles = db.query(Article).filter(Article.primary_category.ilike(topic_name))\
+    articles = db.query(Article).options(joinedload(Article.entities)).filter(Article.primary_category.ilike(topic_name))\
                  .order_by(Article.published_at.desc()).offset(skip).limit(limit).all()
     return articles
 
 @app.get("/entities/{entity_name}", response_model=List[ArticleResponse])
 def get_articles_by_entity(entity_name: str, skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     # Join Article -> ArticleEntity -> Entity
-    results = db.query(Article).join(ArticleEntity).join(Entity)\
+    results = db.query(Article).options(joinedload(Article.entities)).join(ArticleEntity).join(Entity)\
                 .filter(Entity.text.ilike(f"%{entity_name}%"))\
                 .order_by(Article.published_at.desc())\
                 .offset(skip).limit(limit).all()
@@ -183,7 +172,7 @@ def search_articles(q: str, type: str = "text", limit: int = 10, db: Session = D
     else:
         # Simple text search
         # Using ilike on multiple fields
-        results = db.query(Article).filter(
+        results = db.query(Article).options(joinedload(Article.entities)).filter(
             or_(
                 Article.title.ilike(f"%{q}%"),
                 Article.summary_text.ilike(f"%{q}%"),

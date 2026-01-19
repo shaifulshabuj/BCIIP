@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
+from sqlalchemy.orm import relationship
 import uuid
 
 Base = declarative_base()
@@ -29,6 +30,9 @@ class Article(Base):
     summary_bullets = Column(Text, nullable=True)
     embedding = Column(Vector(384))
 
+    # Relationships
+    entities = relationship("Entity", secondary="article_entities", back_populates="articles")
+
 class Entity(Base):
     __tablename__ = "entities"
     
@@ -38,6 +42,9 @@ class Entity(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     __table_args__ = (UniqueConstraint('text', 'type', name='_text_type_uc'),)
+
+    # Relationships
+    articles = relationship("Article", secondary="article_entities", back_populates="entities")
 
 class ArticleEntity(Base):
     __tablename__ = "article_entities"

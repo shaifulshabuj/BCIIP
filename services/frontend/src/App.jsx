@@ -353,24 +353,24 @@ function App() {
                                     </div>
                                     <div className="meta-item">
                                         <Layers size={14} />
-                                        <span>{selectedArticle.category || 'Uncategorized'}</span>
+                                        <span>{selectedArticle.primary_category || 'Uncategorized'}</span>
                                     </div>
                                 </div>
 
-                                {selectedArticle.summary && (
+                                {selectedArticle.summary_text && (
                                     <div className="modal-section">
                                         <h3><TextQuote size={18} /> Summary</h3>
                                         <div className="summary-text" style={{ fontSize: '1.1rem', color: 'var(--text-dim)', lineHeight: '1.6', fontStyle: 'italic' }}>
-                                            {selectedArticle.summary}
+                                            {selectedArticle.summary_text}
                                         </div>
                                     </div>
                                 )}
 
-                                {selectedArticle.full_text && (
+                                {selectedArticle.cleaned_text && (
                                     <div className="modal-section">
                                         <h3><FileText size={18} /> Full Article</h3>
                                         <div className="full-text">
-                                            {selectedArticle.full_text}
+                                            {selectedArticle.cleaned_text}
                                         </div>
                                     </div>
                                 )}
@@ -381,7 +381,7 @@ function App() {
                                         <div className="topic-filters" style={{ marginTop: '12px' }}>
                                             {selectedArticle.entities.map((ent, i) => (
                                                 <span key={i} className="topic-tag">
-                                                    {ent.name} <small style={{ opacity: 0.6, marginLeft: 4 }}>({ent.type})</small>
+                                                    {ent.text} <small style={{ opacity: 0.6, marginLeft: 4 }}>({ent.type})</small>
                                                 </span>
                                             ))}
                                         </div>
