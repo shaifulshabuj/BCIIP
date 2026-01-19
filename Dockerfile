@@ -46,5 +46,5 @@ COPY services ./services
 COPY libs ./libs
 COPY pyproject.toml ./
 
-# Default command
-CMD ["uvicorn", "services.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default command (Shell form to honor $PORT from Railway)
+CMD sh -c "uvicorn services.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
