@@ -7,16 +7,17 @@ from datetime import datetime
 from minio import Minio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from libs.utils.config import get_database_url
+from libs.utils.config import get_redis_url, get_minio_config
 from services.api.models import Article, Base
 
 # Configuration
 DATABASE_URL = get_database_url()
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
+MINIO_CONFIG = get_minio_config()
+MINIO_ENDPOINT = MINIO_CONFIG["endpoint"]
+MINIO_ACCESS_KEY = MINIO_CONFIG["access_key"]
+MINIO_SECRET_KEY = MINIO_CONFIG["secret_key"]
 MINIO_BUCKET = "articles-raw"
-MINIO_SECURE = os.getenv("MINIO_SECURE", "False").lower() == "true"
+MINIO_SECURE = MINIO_CONFIG["secure"]
 
 # MinIO Setup
 minio_client = Minio(

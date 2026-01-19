@@ -79,8 +79,10 @@ def get_status(db: Session = Depends(get_db)):
     import redis
     import datetime
     
+    from libs.utils.config import get_redis_url
+    
     # Redis for crawler status
-    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_URL = get_redis_url()
     try:
         r = redis.from_url(REDIS_URL)
         crawler_status = r.get("bciip:crawler_status")

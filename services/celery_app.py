@@ -4,8 +4,10 @@ from celery.schedules import crontab
 from services.crawler.main import run_crawl
 from services.processor.main import run_process
 
+from libs.utils.config import get_redis_url
+
 # Redis URL for broker and backend
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+REDIS_URL = get_redis_url()
 
 app = Celery('bciip', broker=REDIS_URL, backend=REDIS_URL)
 

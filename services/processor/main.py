@@ -14,16 +14,17 @@ from libs.categorization.categorizer import categorize_text
 from libs.entity_extraction.extractor import extract_entities
 from libs.summarization.summarizer import generate_summary
 from libs.embeddings.embedder import generate_embedding
-from libs.utils.config import get_database_url
+from libs.utils.config import get_database_url, get_minio_config
 from services.api.models import Article, Entity, ArticleEntity
 from sqlalchemy.dialects.postgresql import insert
 
 # Config
 DATABASE_URL = get_database_url()
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-MINIO_SECURE = os.getenv("MINIO_SECURE", "False").lower() == "true"
+MINIO_CONFIG = get_minio_config()
+MINIO_ENDPOINT = MINIO_CONFIG["endpoint"]
+MINIO_ACCESS_KEY = MINIO_CONFIG["access_key"]
+MINIO_SECRET_KEY = MINIO_CONFIG["secret_key"]
+MINIO_SECURE = MINIO_CONFIG["secure"]
 MINIO_BUCKET = "articles-raw"
 
 # Setup
