@@ -82,6 +82,11 @@ def get_minio_config():
     else:
         # Default to false for internal addresses, true for external public URLs
         secure = not is_internal
+        
+    # FORCE SECURE=FALSE for internal railway addresses (they don't support SSL)
+    if is_internal and secure:
+        logger.warning(f"Internal MinIO address detected. Overriding MINIO_SECURE=true to False for connectivity.")
+        secure = False
 
     # Default Port: If no port is specified, use 9000 for internal
     if ":" not in endpoint and is_internal:
