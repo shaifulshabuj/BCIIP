@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import {
+    Search,
+    Calendar,
+    Database,
+    BarChart3,
+    Layers,
+    ShieldCheck,
+    RefreshCcw,
+    ArrowRight,
+    Filter,
+    X
+} from 'lucide-react'
 import './App.css'
 
 function App() {
@@ -17,6 +29,7 @@ function App() {
     const [acqDateFrom, setAcqDateFrom] = useState('')
     const [acqDateTo, setAcqDateTo] = useState('')
 
+    // Realtime Status
     const [systemStatus, setSystemStatus] = useState("idle")
     const [articleCount, setArticleCount] = useState(0)
     const [newContentAvailable, setNewContentAvailable] = useState(false)
@@ -33,7 +46,6 @@ function App() {
         return () => clearInterval(interval)
     }, [selectedTopic, pubDateFrom, pubDateTo, acqDateFrom, acqDateTo])
 
-    // Infinite scroll
     useEffect(() => {
         const handleScroll = () => {
             if (window.innerHeight + document.documentElement.scrollTop
@@ -150,133 +162,131 @@ function App() {
     const topics = ['Politics', 'Sports', 'Business', 'Technology', 'Education', 'Crime']
 
     return (
-        <div className="container">
+        <div className="container fade-in">
             <header>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1>BCIIP Intelligence</h1>
-                    <div style={{ textAlign: 'right' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h1>BCIIP Intelligence</h1>
+                        <p>Bangladesh Continuous Internet Intelligence Platform</p>
+                    </div>
+                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                         <span className={`status-badge ${systemStatus}`}>
-                            {systemStatus === 'running' ? '🟢 Crawling' : '⚪ Idle'}
+                            {systemStatus === 'running' ? '🟢 Live Crawling' : '⚪ Monitoring Mode'}
                         </span>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                            {articleCount} Articles Total
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Database size={14} /> {articleCount.toLocaleString()} Articles
                         </div>
                     </div>
                 </div>
-                <p>Real-time internet intelligence platform for Bangladesh</p>
             </header>
 
             {newContentAvailable && (
                 <div className="notification-banner" onClick={() => fetchArticles(true)}>
-                    📢 New articles available! Click to refresh.
+                    <RefreshCcw size={16} style={{ marginRight: '8px' }} />
+                    New intelligence acquired. Click to synchronize.
                 </div>
             )}
 
             {stats && (
-                <div style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-                    color: 'white',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    marginBottom: '20px',
-                    border: '1px solid #475569'
-                }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
-                        <div>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Pipeline</h4>
-                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>📥 Acquired</span> <span>{stats.processing_stages?.acquired || 0}</span></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🧹 Cleaned</span> <span>{stats.processing_stages?.cleaned || 0}</span></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🏷️ Categorized</span> <span>{stats.processing_stages?.categorized || 0}</span></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>📝 Summarized</span> <span>{stats.processing_stages?.summarized || 0}</span></div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>🔮 Embedded</span> <span>{stats.processing_stages?.embedded || 0}</span></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Top Sources</h4>
-                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
-                                {stats.by_source ?
-                                    Object.entries(stats.by_source).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([source, count]) => (
-                                        <div key={source} style={{ display: 'flex', justifyContent: 'space-between', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            <span style={{ marginRight: '10px' }}>{source}</span>
-                                            <span>{count}</span>
-                                        </div>
-                                    )) : <div>No data</div>
-                                }
-                            </div>
-                        </div>
-
-                        <div>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>Categories</h4>
-                            <div style={{ fontSize: '0.85rem', lineHeight: '1.6' }}>
-                                {stats.by_category ?
-                                    Object.entries(stats.by_category).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([cat, count]) => (
-                                        <div key={cat} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span style={{ textTransform: 'capitalize' }}>{cat}</span>
-                                            <span>{count}</span>
-                                        </div>
-                                    )) : <div>No data</div>
-                                }
-                            </div>
-                        </div>
+                <section className="stats-grid">
+                    <div className="stats-card">
+                        <h4><Layers size={14} style={{ marginRight: '8px' }} /> Processing Pipeline</h4>
+                        <div className="pipeline-item"><span>📥 Acquired</span> <span>{stats.processing_stages?.acquired || 0}</span></div>
+                        <div className="pipeline-item"><span>🧹 Cleaned</span> <span>{stats.processing_stages?.cleaned || 0}</span></div>
+                        <div className="pipeline-item"><span>🏷️ Categorized</span> <span>{stats.processing_stages?.categorized || 0}</span></div>
+                        <div className="pipeline-item"><span>📝 Summarized</span> <span>{stats.processing_stages?.summarized || 0}</span></div>
+                        <div className="pipeline-item"><span>🔮 Embedded</span> <span>{stats.processing_stages?.embedded || 0}</span></div>
                     </div>
-                </div>
+
+                    <div className="stats-card">
+                        <h4><BarChart3 size={14} style={{ marginRight: '8px' }} /> Top Intelligence Sources</h4>
+                        {stats.by_source ?
+                            Object.entries(stats.by_source).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([source, count]) => (
+                                <div key={source} className="pipeline-item">
+                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>{source}</span>
+                                    <span>{count}</span>
+                                </div>
+                            )) : <div style={{ color: 'var(--text-muted)' }}>Synchronizing...</div>
+                        }
+                    </div>
+
+                    <div className="stats-card">
+                        <h4><ShieldCheck size={14} style={{ marginRight: '8px' }} /> Top Categories</h4>
+                        {stats.by_category ?
+                            Object.entries(stats.by_category).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([cat, count]) => (
+                                <div key={cat} className="pipeline-item">
+                                    <span style={{ textTransform: 'capitalize' }}>{cat}</span>
+                                    <span>{count}</span>
+                                </div>
+                            )) : <div style={{ color: 'var(--text-muted)' }}>Synchronizing...</div>
+                        }
+                    </div>
+                </section>
             )}
 
-            <form className="search-bar" onSubmit={handleSearch}>
-                <input
-                    type="text"
-                    placeholder="Search articles..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-                <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
-                    <option value="text">Keyword</option>
-                    <option value="semantic">Semantic (AI)</option>
-                </select>
-                <button type="submit">Search</button>
-            </form>
+            <section style={{ marginBottom: '40px' }}>
+                <form className="search-container" onSubmit={handleSearch}>
+                    <div className="search-bar">
+                        <Search size={18} style={{ marginLeft: '12px', alignSelf: 'center', color: 'var(--text-muted)' }} />
+                        <input
+                            type="text"
+                            placeholder="Search intelligence database..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
+                        <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+                            <option value="text">Keyword</option>
+                            <option value="semantic">Semantic (AI)</option>
+                        </select>
+                    </div>
+                    <button type="submit" className="search-button">Deep Search</button>
+                </form>
 
-            <div className="date-filters" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <div>
-                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📅 Pub From:</label>
-                    <input type="date" value={pubDateFrom} onChange={(e) => setPubDateFrom(e.target.value)} />
-                </div>
-                <div>
-                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📅 Pub To:</label>
-                    <input type="date" value={pubDateTo} onChange={(e) => setPubDateTo(e.target.value)} />
-                </div>
-                <div>
-                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📥 Acq From:</label>
-                    <input type="date" value={acqDateFrom} onChange={(e) => setAcqDateFrom(e.target.value)} />
-                </div>
-                <div>
-                    <label style={{ fontSize: '0.85rem', marginRight: '5px' }}>📥 Acq To:</label>
-                    <input type="date" value={acqDateTo} onChange={(e) => setAcqDateTo(e.target.value)} />
-                </div>
-                <button onClick={() => { setPubDateFrom(''); setPubDateTo(''); setAcqDateFrom(''); setAcqDateTo('') }} style={{ padding: '5px 15px', cursor: 'pointer' }}>Clear</button>
-            </div>
-
-            <div className="filters">
-                <span
-                    className={`chip ${!selectedTopic ? 'active' : ''}`}
-                    onClick={() => setSelectedTopic(null)}
-                >
-                    All
-                </span>
-                {topics.map(t => (
-                    <span
-                        key={t}
-                        className={`chip ${selectedTopic === t ? 'active' : ''}`}
-                        onClick={() => setSelectedTopic(t)}
+                <div className="date-filters">
+                    <div className="date-group">
+                        <label><Calendar size={12} style={{ marginRight: '4px' }} /> Pub From</label>
+                        <input type="date" value={pubDateFrom} onChange={(e) => setPubDateFrom(e.target.value)} />
+                    </div>
+                    <div className="date-group">
+                        <label><Calendar size={12} style={{ marginRight: '4px' }} /> Pub To</label>
+                        <input type="date" value={pubDateTo} onChange={(e) => setPubDateTo(e.target.value)} />
+                    </div>
+                    <div className="date-group">
+                        <label><ArrowRight size={12} style={{ marginRight: '4px' }} /> Acq From</label>
+                        <input type="date" value={acqDateFrom} onChange={(e) => setAcqDateFrom(e.target.value)} />
+                    </div>
+                    <div className="date-group">
+                        <label><ArrowRight size={12} style={{ marginRight: '4px' }} /> Acq To</label>
+                        <input type="date" value={acqDateTo} onChange={(e) => setAcqDateTo(e.target.value)} />
+                    </div>
+                    <button
+                        onClick={() => { setPubDateFrom(''); setPubDateTo(''); setAcqDateFrom(''); setAcqDateTo('') }}
+                        style={{ alignSelf: 'flex-end', background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8125rem' }}
                     >
-                        {t}
-                    </span>
-                ))}
-            </div>
+                        <X size={14} /> Reset
+                    </button>
+                </div>
 
-            <div className="article-list">
+                <div className="filters">
+                    <div
+                        className={`chip ${!selectedTopic ? 'active' : ''}`}
+                        onClick={() => setSelectedTopic(null)}
+                    >
+                        All Signals
+                    </div>
+                    {topics.map(t => (
+                        <div
+                            key={t}
+                            className={`chip ${selectedTopic === t ? 'active' : ''}`}
+                            onClick={() => setSelectedTopic(t)}
+                        >
+                            {t}
+                        </div>
+                    ))}
+                </div>
+            </section >
+
+            <section className="article-list">
                 {articles.map(article => (
                     <div key={article.id} className="article-card">
                         <h2>
@@ -285,32 +295,34 @@ function App() {
                             </a>
                         </h2>
                         <div className="meta">
-                            <div>
-                                <span title="When the article was published">📅 Pub: {formatDate(article.published_at)}</span>
-                                <span style={{ marginLeft: '10px' }} title="When we acquired this data">📥 Acq: {formatDate(article.created_at)}</span>
+                            <div className="meta-row">
+                                <span title="Publication Date"><Calendar size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Pub: {formatDate(article.published_at)}</span>
+                                <span title="Acquisition Date"><RefreshCcw size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Acq: {formatDate(article.created_at)}</span>
                             </div>
-                            <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                            <div className="meta-row" style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 <span>{article.source}</span>
-                                {article.primary_category && ` • ${article.primary_category}`}
+                                {article.primary_category && <span> • {article.primary_category}</span>}
                             </div>
                         </div>
-                        {article.summary_text || (article.cleaned_text ? article.cleaned_text.substring(0, 200) + '...' : 'No content available.')}
+                        <div className="summary">
+                            {article.summary_text || (article.cleaned_text ? article.cleaned_text.substring(0, 240) + '...' : 'Intelligence signal acquisition complete. Awaiting detailed analysis.')}
+                        </div>
 
                         {article.entities && article.entities.length > 0 && (
                             <div className="entities">
-                                {article.entities.slice(0, 5).map(ent => (
+                                {article.entities.slice(0, 6).map(ent => (
                                     <span key={ent.id} className="entity-tag">{ent.text}</span>
                                 ))}
                             </div>
                         )}
                     </div>
                 ))}
-            </div>
+            </section>
 
-            {loading && <p style={{ textAlign: 'center', padding: '20px' }}>Loading more articles...</p>}
-            {!loading && !hasMore && articles.length > 0 && <p style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No more articles to load</p>}
-            {!loading && articles.length === 0 && <p style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No articles found</p>}
-        </div>
+            {loading && <div className="loading-indicator">Deep searching database...</div>}
+            {!loading && !hasMore && articles.length > 0 && <div className="loading-indicator">End of intelligence stream</div>}
+            {!loading && articles.length === 0 && <div className="loading-indicator">No intelligence signals found matching the current parameters</div>}
+        </div >
     )
 }
 
