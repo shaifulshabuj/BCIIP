@@ -8,11 +8,10 @@ from sqlalchemy.orm import sessionmaker, joinedload
 import os
 from typing import List, Optional
 from libs.embeddings.embedder import generate_embedding
+from libs.utils.config import get_database_url
 
 # Database Setup
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5432/bciip")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = get_database_url()
 
 engine = create_engine(
     DATABASE_URL, 

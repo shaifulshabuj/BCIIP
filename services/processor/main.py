@@ -14,11 +14,12 @@ from libs.categorization.categorizer import categorize_text
 from libs.entity_extraction.extractor import extract_entities
 from libs.summarization.summarizer import generate_summary
 from libs.embeddings.embedder import generate_embedding
+from libs.utils.config import get_database_url
 from services.api.models import Article, Entity, ArticleEntity
 from sqlalchemy.dialects.postgresql import insert
 
 # Config
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5432/bciip")
+DATABASE_URL = get_database_url()
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")

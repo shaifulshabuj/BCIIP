@@ -7,10 +7,11 @@ from datetime import datetime
 from minio import Minio
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from libs.utils.config import get_database_url
 from services.api.models import Article, Base
 
 # Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@postgres:5432/bciip")
+DATABASE_URL = get_database_url()
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "minio:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
