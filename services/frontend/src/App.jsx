@@ -35,7 +35,7 @@ function App() {
     const [stats, setStats] = useState(null)
     const lastKnownCount = useRef(0)
 
-    const API_BASE = ''
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
     useEffect(() => {
         fetchArticles(true)
