@@ -12,3 +12,4 @@ models/*.bin
 
 # Data
 data/
+celerybeat-schedule
