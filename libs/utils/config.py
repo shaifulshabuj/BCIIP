@@ -65,10 +65,33 @@ def get_redis_url():
 def get_minio_config():
     """
     Centralized utility to discover MinIO configuration.
+    Automatically handles internal vs external networking.
     """
+    endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
+    
+    # Strip protocol if provided (Minio client expects host:port)
+    if "://" in endpoint:
+        endpoint = endpoint.split("://")[1]
+        
+    is_internal = ".railway.internal" in endpoint or endpoint.startswith("minio")
+    
+    # Secure: default to false for internal, detect for external
+    secure_env = os.getenv("MINIO_SECURE")
+    if secure_env is not None:
+        secure = secure_env.lower() == "true"
+    else:
+        # Default to false for internal addresses, true for external public URLs
+        secure = not is_internal
+
+    # Default Port: If no port is specified, use 9000 for internal
+    if ":" not in endpoint and is_internal:
+        endpoint = f"{endpoint}:9000"
+
+    logger.info(f"MinIO target: {endpoint} (Secure: {secure})")
+    
     return {
-        "endpoint": os.getenv("MINIO_ENDPOINT", "minio:9000"),
+        "endpoint": endpoint,
         "access_key": os.getenv("MINIO_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "minioadmin")),
         "secret_key": os.getenv("MINIO_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")),
-        "secure": os.getenv("MINIO_SECURE", "False").lower() == "true"
+        "secure": secure
     }
