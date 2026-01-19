@@ -35,7 +35,20 @@ function App() {
     const [stats, setStats] = useState(null)
     const lastKnownCount = useRef(0)
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+    const getApiBase = () => {
+        let base = import.meta.env.VITE_API_BASE_URL || ''
+        if (!base) return ''
+
+        // Ensure protocol
+        if (!base.startsWith('http://') && !base.startsWith('https://')) {
+            base = `https://${base}`
+        }
+
+        // Remove trailing slash
+        return base.replace(/\/+$/, '')
+    }
+
+    const API_BASE = getApiBase()
 
     useEffect(() => {
         fetchArticles(true)
