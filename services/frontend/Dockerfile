@@ -12,10 +12,32 @@ RUN npm run build
 # Production stage
 FROM nginx:stable-alpine as production-stage
 
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# Copy files to the /BCIIP subdirectory to match Vite base path
+COPY --from=build-stage /app/dist /usr/share/nginx/html/BCIIP
 
-# Custom nginx config for SPA routing (optional but recommended)
-# RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+# Redirect root to /BCIIP/
+RUN echo '<html><head><meta http-equiv="refresh" content="0; url=/BCIIP/"></head><body>Redirecting to <a href="/BCIIP/">/BCIIP/</a></body></html>' > /usr/share/nginx/html/index.html
+
+# Custom nginx config for SPA routing and API proxy
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    } \
+    location /BCIIP/ { \
+    root /usr/share/nginx/html; \
+    try_files $uri $uri/ /BCIIP/index.html; \
+    } \
+    # Proxy API requests to the backend service \
+    location ~ ^/(articles|search|topics|entities|stats|status) { \
+    proxy_pass http://api:8000; \
+    proxy_set_header Host $host; \
+    proxy_set_header X-Real-IP $remote_addr; \
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+    proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    }' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
