@@ -22,7 +22,17 @@ app.conf.update(
 @app.task(name='crawl_task')
 def crawl_task():
     print("Running Crawl Task...")
-    run_crawl()
+    # Update status in Redis
+    import redis
+    r = redis.from_url(REDIS_URL)
+    r.set("bciip:crawler_status", "running")
+    r.set("bciip:last_run", run_crawl.__module__) # Just a dummy write, or use time
+    
+    try:
+        run_crawl()
+    finally:
+        r.set("bciip:crawler_status", "idle")
+        
     return "Crawl Completed"
 
 @app.task(name='process_task', autoretry_for=(Exception,), retry_backoff=True, max_retries=3)

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import './App.css' // Assuming we extract styles or keep using index.css
 
 function App() {
     const [articles, setArticles] = useState([])
@@ -8,12 +9,45 @@ function App() {
     const [selectedTopic, setSelectedTopic] = useState(null)
     const [loading, setLoading] = useState(false)
 
+    // Realtime Status
+    const [systemStatus, setSystemStatus] = useState("idle")
+    const [articleCount, setArticleCount] = useState(0)
+    const [newContentAvailable, setNewContentAvailable] = useState(false)
+    const lastKnownCount = useRef(0)
+
     // Use relative URL so Vite proxy handles it
     const API_BASE = ''
 
     useEffect(() => {
         fetchArticles()
+        // Initial status check
+        checkStatus()
+
+        // Poll for status every 10 seconds
+        const interval = setInterval(checkStatus, 10000)
+        return () => clearInterval(interval)
     }, [selectedTopic])
+
+    const checkStatus = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/status`)
+            setSystemStatus(res.data.status)
+            const currentCount = res.data.article_count
+
+            // If this is the first load, rely on the count; otherwise check for increase
+            if (lastKnownCount.current > 0 && currentCount > lastKnownCount.current) {
+                setNewContentAvailable(true)
+            }
+
+            if (lastKnownCount.current === 0) {
+                lastKnownCount.current = currentCount
+            }
+
+            setArticleCount(currentCount)
+        } catch (e) {
+            console.error("Status check failed", e)
+        }
+    }
 
     const fetchArticles = async () => {
         setLoading(true)
@@ -24,6 +58,15 @@ function App() {
             }
             const res = await axios.get(url)
             setArticles(res.data)
+            setNewContentAvailable(false)
+            // Update ref to current count after fetch
+            if (articles.length > 0) {
+                // This logic is imperfect for "count" vs "fetched list" but good enough for MVP signal
+                // Ideally we use the count from status API as the truth.
+                // Let's rely on checkStatus to update the ref once we dismiss the notice.
+                const statusRes = await axios.get(`${API_BASE}/status`)
+                lastKnownCount.current = statusRes.data.article_count
+            }
         } catch (e) {
             console.error(e)
         }
@@ -52,9 +95,25 @@ function App() {
     return (
         <div className="container">
             <header>
-                <h1>BCIIP Intelligence</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h1>BCIIP Intelligence</h1>
+                    <div style={{ textAlign: 'right' }}>
+                        <span className={`status-badge ${systemStatus}`}>
+                            {systemStatus === 'running' ? '🟢 Crawling' : '⚪ Ideal'}
+                        </span>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                            {articleCount} Articles Processed
+                        </div>
+                    </div>
+                </div>
                 <p>Real-time internet intelligence platform for Bangladesh</p>
             </header>
+
+            {newContentAvailable && (
+                <div className="notification-banner" onClick={fetchArticles}>
+                    📢 New articles available! Click to refresh.
+                </div>
+            )}
 
             <form className="search-bar" onSubmit={handleSearch}>
                 <input

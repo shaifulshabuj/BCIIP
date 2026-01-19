@@ -35,6 +35,29 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
+@app.get("/status")
+def get_status(db: Session = Depends(get_db)):
+    import redis
+    import datetime
+    
+    # Redis for crawler status
+    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    try:
+        r = redis.from_url(REDIS_URL)
+        crawler_status = r.get("bciip:crawler_status")
+        crawler_status = crawler_status.decode("utf-8") if crawler_status else "idle"
+    except:
+        crawler_status = "unknown"
+        
+    # DB for counts
+    article_count = db.query(Article).count()
+    
+    return {
+        "status": crawler_status,
+        "article_count": article_count,
+        "timestamp": datetime.datetime.now().isoformat()
+    }
+
 @app.get("/articles", response_model=List[ArticleResponse])
 def get_articles(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
     articles = db.query(Article).order_by(Article.published_at.desc()).offset(skip).limit(limit).all()
